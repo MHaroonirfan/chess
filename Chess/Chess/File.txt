@@ -1,0 +1,9 @@
+ZStack {
+                        if (index / 8 + index % 8) % 2 == 0 {
+                            Rectangle()
+                                .foregroundColor(.white) // or any color for cells where you don't use the image
+                        } else {
+                            Image("BrownCell") // Background image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        }
