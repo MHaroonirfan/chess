@@ -33,6 +33,8 @@ struct chessBoard {
     }
     
     mutating func setUpBoard(){
+        
+//          Blacks
         for i in 8..<16{
             
             pieces.append(chessPiece(type: .Pawn, color: .black, position: i))
@@ -46,7 +48,7 @@ struct chessBoard {
         pieces.append(chessPiece(type: .Bishop, color: .black, position: 5))
         pieces.append(chessPiece(type: .King, color: .black, position: 3))
         pieces.append(chessPiece(type: .Queen, color: .black, position: 4))
- 
+//          Whites
         for i in 48..<56 {
             pieces.append(chessPiece(type: .Pawn, color: .white, position: i))
         }
@@ -87,19 +89,21 @@ struct ContentView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                             
-VStack(spacing: 30){
-    HStack{
-        Text("00:00")
-        .frame(maxWidth: UIScreen.main.bounds.width - 80)
-        .font(.system(size: 50))
-        .fontWeight(.bold)
-        .foregroundColor( Color(red: 242 / 255.0, green: 188 / 255.0, blue: 36 / 255.0))
-        .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                .stroke(( Color(red: 242 / 255.0, green: 188 / 255.0, blue: 36 / 255.0)) , lineWidth: 2)
-                )
+        VStack(spacing: 30){
+//            Timer Lable
+        HStack{
+            Text("00:00")
+            .frame(maxWidth: UIScreen.main.bounds.width - 80)
+            .font(.system(size: 50))
+            .fontWeight(.bold)
+            .foregroundColor( Color(red: 242 / 255.0, green: 188 / 255.0, blue: 36 / 255.0))
+            .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                    .stroke(( Color(red: 242 / 255.0, green: 188 / 255.0, blue: 36 / 255.0)) , lineWidth: 2)
+                    )
         }
         .frame(maxWidth: .infinity)
+//            Player Lable
         HStack{
             Text("Player: \(currentPlayer == .white ? "White" : "Black")")
                 .frame(maxWidth: UIScreen.main.bounds.width - 80)
@@ -108,6 +112,7 @@ VStack(spacing: 30){
                 .foregroundColor( Color(red: 242 / 255.0, green: 188 / 255.0, blue: 36 / 255.0))
         }
         .frame(maxWidth: .infinity)
+//            ChessBoard
         ZStack(){
             Image("BoardBg")
                 .resizable()
@@ -130,11 +135,11 @@ VStack(spacing: 30){
                                     .shadow(color: .white.opacity(0.2), radius:15, x: 0, y: 0)
                                 }
                             
-                                    // Add index number for debugging purposes
+                                // Add index number for debugging purposes
                                     Text("\(index)")
                                         .font(.title)
                                         .foregroundColor(.red)
-                            
+//                                Placing Pieces at board
                                 if let piece = ChessBoard.pieces.first(where: { $0.position == index }) {
                                 Image("\(piece.color == .white ? "White" : "Black")\(piece.type)")
                                     .resizable()
@@ -143,10 +148,11 @@ VStack(spacing: 30){
                                     .onTapGesture {
                                         print("\(piece.type)")
                                         selectedPiece = piece
-                                        allowedMoves = validMoves(for: piece)
+                                        allowedMoves = validMoves(for: piece , CalledFromPlayer: true)
                                     }
                                                     
                                     }
+                            
                             if allowedMoves.contains(index) {
                                     Rectangle()
                                         .fill(Color.green.opacity(0.5))
@@ -170,7 +176,6 @@ VStack(spacing: 30){
                 HStack{
                 }
                 .frame(maxWidth: .infinity, maxHeight: 80)
-                .background(.yellow)
                    
                 
                 
@@ -216,91 +221,63 @@ VStack(spacing: 30){
 
     
     
-    func validMoves(for piece: chessPiece) -> [Int] {
+    func validMoves(for piece: chessPiece , CalledFromPlayer : Bool) -> [Int] {
         var moves: [Int] = []
+
+//        If called from player dont allow the player to play with out his turn
+        if CalledFromPlayer == true {
+            // Only return moves for the current player's piece
+                guard piece.color == currentPlayer else {
+                    print("CalledFromPlayer is : \(CalledFromPlayer)")
+                    return []
+                }
+        }
         
-        
-        // Only return moves for the current player's piece
-            guard piece.color == currentPlayer else {
-                return []
-            }
         
         let direction = piece.color == .white ? -8 : 8  // White moves up, black moves down
         let currentRow = piece.position / 8
-        let currentCol = piece.position % 8
+//        let currentCol = piece.position % 8
         
         
         
         switch piece.type {
 
-            
-//        case .Pawn:
-//                // Forward move
-//                let forwardMove = piece.position + direction
-//                if isValidPosition(forwardMove) && ChessBoard.pieces.first(where: { $0.position == forwardMove }) == nil {
-//                    moves.append(forwardMove)
-//                }
-//                
-//                // Initial two-step move
-//                if (piece.color == .white && currentRow == 6) || (piece.color == .black && currentRow == 1) {
-//                    let twoStepMove = piece.position + (2 * direction)
-//                    if isValidPosition(twoStepMove) && ChessBoard.pieces.first(where: { $0.position == twoStepMove }) == nil {
-//                        moves.append(twoStepMove)
-//                    }
-//                }
-//                
-//                // Capture diagonally
-//                let diagonalLeft = piece.position + direction - 1
-//                let diagonalRight = piece.position + direction + 1
-//                
-//                if isValidPosition(diagonalLeft) {
-//                    if let leftCapture = ChessBoard.pieces.first(where: { $0.position == diagonalLeft && $0.color != piece.color }) {
-//                        moves.append(diagonalLeft)
-//                    }
-//                }
-//                
-//                if isValidPosition(diagonalRight) {
-//                    if let rightCapture = ChessBoard.pieces.first(where: { $0.position == diagonalRight && $0.color != piece.color }) {
-//                        moves.append(diagonalRight)
-//                    }
-//                }
-        case .Pawn:
-                // Forward move
-                let forwardMove = piece.position + direction
-                if isValidPosition(forwardMove) && ChessBoard.pieces.first(where: { $0.position == forwardMove }) == nil {
-                    moves.append(forwardMove)
-                    
-                    // Initial two-step move
-                    let initialRow = piece.color == .white ? 6 : 1
-                    if currentRow == initialRow {
-                        let twoStepMove = piece.position + 2 * direction
-                        if isValidPosition(twoStepMove) &&
-                           ChessBoard.pieces.first(where: { $0.position == twoStepMove }) == nil {
-                            moves.append(twoStepMove)
-                        }
-                    }
-                }
-                
-            print("Pawn at position \(piece.position) can move to \(moves)")
 
-            
-            
-                // Capture diagonally
-                let diagonalLeft = piece.position + direction - 1
-                let diagonalRight = piece.position + direction + 1
-                
-                if isValidPosition(diagonalLeft) {
-                    if let leftCapture = ChessBoard.pieces.first(where: { $0.position == diagonalLeft && $0.color != piece.color }) {
-                        moves.append(diagonalLeft)
-                    }
+        case .Pawn:
+            // Forward move
+            let forwardMove = piece.position + direction
+            if isValidPosition(forwardMove) && ChessBoard.pieces.first(where: { $0.position == forwardMove }) == nil {
+                moves.append(forwardMove)
+            }
+
+            // Initial two-step move (check no piece is in the way)
+            if (piece.color == .white && currentRow == 6) || (piece.color == .black && currentRow == 1) {
+                let oneStepMove = piece.position + direction
+                let twoStepMove = piece.position + (2 * direction)
+                if isValidPosition(twoStepMove),
+                   ChessBoard.pieces.first(where: { $0.position == oneStepMove }) == nil,  // Ensure no piece in the way
+                   ChessBoard.pieces.first(where: { $0.position == twoStepMove }) == nil {
+                    moves.append(twoStepMove)
                 }
-                
-                if isValidPosition(diagonalRight) {
-                    if let rightCapture = ChessBoard.pieces.first(where: { $0.position == diagonalRight && $0.color != piece.color }) {
-                        moves.append(diagonalRight)
-                    }
-                }
+            }
+
+            // Capture diagonally
+            let diagonalLeft = piece.position + direction - 1
+            let diagonalRight = piece.position + direction + 1
             
+            // Ensure capture doesn't wrap around the board
+            if isValidPosition(diagonalLeft) && (piece.position % 8) > 0 {
+                if let leftCapture = ChessBoard.pieces.first(where: { $0.position == diagonalLeft && $0.color != piece.color }) {
+                    moves.append(diagonalLeft)
+                }
+            }
+
+            if isValidPosition(diagonalRight) && (piece.position % 8) < 7 {
+                if let rightCapture = ChessBoard.pieces.first(where: { $0.position == diagonalRight && $0.color != piece.color }) {
+                    moves.append(diagonalRight)
+                }
+            }
+
             
             
         case .Rook:
@@ -483,32 +460,70 @@ VStack(spacing: 30){
                         newCol += colDelta
                     }
                 }
-            
         case .King:
-                let directions = [
-                    -8, 8,  // Up and Down
-                    -1, 1,  // Left and Right
-                    -7, 7,  // Diagonal up-right and down-left
-                    -9, 9   // Diagonal up-left and down-right
-                ]
-                
-                for direction in directions {
-                    let newPosition = piece.position + direction
+            // Current position of the King
+            let currentPosition = piece.position
+            
+            // Calculate current row and column from the current position
+            let currentRow = currentPosition / 8
+            let currentCol = currentPosition % 8
+
+            // All possible moves for a King (1 cell in all directions)
+            let kingMoves = [
+                (currentRow + 1, currentCol),     // Down
+                (currentRow - 1, currentCol),     // Up
+                (currentRow, currentCol + 1),     // Right
+                (currentRow, currentCol - 1),     // Left
+                (currentRow + 1, currentCol + 1), // Down-right
+                (currentRow + 1, currentCol - 1), // Down-left
+                (currentRow - 1, currentCol + 1), // Up-right
+                (currentRow - 1, currentCol - 1)  // Up-left
+            ]
+            
+            for (newRow, newCol) in kingMoves {
+                // Check if the move is within board bounds
+                if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
+                    let newPosition = newRow * 8 + newCol
                     
-                    // Check if the move is within bounds
-                    let newRow = newPosition / 8
-                    let newCol = newPosition % 8
-                    if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
-                        // Check if the new position is not occupied by a friendly piece
-                        if ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) == nil {
-                            
-                            // Check if the new position is under attack by the opponent
-                            if !isSquareUnderAttack(position: newPosition, by: piece.color.opponent) {
-                                moves.append(newPosition)
-                            }
+                    // Check if the cell is occupied by a friendly piece
+                    if let friendlyPiece = ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) {
+                        continue  // Skip if there's a friendly piece
+                    }
+                    
+                    // Check if the cell is occupied by an opponent's piece (capture move)
+                    let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
+                    
+                    // Check if the cell is targeted by any opponent's piece (excluding the opponent's King)
+                    var isTargetedByOpponent = false
+                    for opponentPiece in ChessBoard.pieces where opponentPiece.color != piece.color {
+                        // Skip if the opponent's piece is a King to avoid recursion
+                        if opponentPiece.type == .King {
+                            continue
+                        }
+                        
+                        let opponentMoves = validMoves(for: opponentPiece, CalledFromPlayer: false)
+                        if opponentMoves.contains(newPosition) {
+                            isTargetedByOpponent = true
+                            break  // No need to check further if one piece is already targeting this position
+                        }
+                    }
+                    
+                    // Only add the move if it's not targeted by any opponent
+                    if !isTargetedByOpponent {
+                        // Add regular or capture move
+                        if isCaptureMove {
+                            moves.append(newPosition) // Capture the opponent's piece
+                        } else {
+                            moves.append(newPosition)  // Regular move
                         }
                     }
                 }
+            }
+
+
+
+            
+        
             
             
         // Handle other pieces if needed
@@ -525,25 +540,9 @@ VStack(spacing: 30){
         return position >= 0 && position < 64
     }
     
-
     
-    func isSquareUnderAttack(position: Int, by opponentColor: pieceColor) -> Bool {
-        print("Checking if square \(position) is under attack by \(opponentColor)")
-        
-        for opponentPiece in ChessBoard.pieces where opponentPiece.color == opponentColor {
-            let opponentMoves = validMoves(for: opponentPiece)
-            print("Opponent piece \(opponentPiece.type) at position \(opponentPiece.position) can move to \(opponentMoves)")
-            
-            // If any opponent piece can move to the position, return true
-            if opponentMoves.contains(position) {
-                print("Position \(position) is under attack by opponent piece \(opponentPiece.type) at position \(opponentPiece.position)")
-                return true
-            }
-        }
-        
-        print("Position \(position) is NOT under attack")
-        return false
-    }
+
+
 
 
 
