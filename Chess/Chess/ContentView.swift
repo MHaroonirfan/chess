@@ -218,7 +218,89 @@ struct ContentView: View {
         allowedMoves = []
     }
 
+    func pawnAndKingTargets(for piece: chessPiece) -> [Int] {
+        var targets: [Int] = []
+        
+        let direction = piece.color == .white ? -8 : 8  // White moves up, black moves down
+        let currentRow = piece.position / 8
+        
+        print("CALLED ON\(piece.type)")
+        
+        switch piece.type {
+            
+            
+        case .Pawn:
+            // Capture diagonally
+            let diagonalLeft = piece.position + direction - 1
+            let diagonalRight = piece.position + direction + 1
+            
+            // Ensure capture doesn't wrap around the board
+            if isValidPosition(diagonalLeft) && (piece.position % 8) > 0 {
+              
+                    targets.append(diagonalLeft)
+               
+            }
+            
+            if isValidPosition(diagonalRight) && (piece.position % 8) < 7 {
+             
+                    targets.append(diagonalRight)
+            }
+            
+            
+        case .King :
+            // Current position of the King
+            let currentPosition = piece.position
+            
+            // Calculate current row and column from the current position
+            let currentRow = currentPosition / 8
+            let currentCol = currentPosition % 8
 
+            // All possible moves for a King (1 cell in all directions)
+            let kingMoves = [
+                (currentRow + 1, currentCol),     // Down
+                (currentRow - 1, currentCol),     // Up
+                (currentRow, currentCol + 1),     // Right
+                (currentRow, currentCol - 1),     // Left
+                (currentRow + 1, currentCol + 1), // Down-right
+                (currentRow + 1, currentCol - 1), // Down-left
+                (currentRow - 1, currentCol + 1), // Up-right
+                (currentRow - 1, currentCol - 1)  // Up-left
+            ]
+            
+           
+            
+            
+            for (newRow, newCol) in kingMoves {
+                // Check if the move is within board bounds
+                if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
+                    let newPosition = newRow * 8 + newCol
+                    
+                   
+                    
+                  
+                       
+                    targets.append(newPosition) // Capture the opponent's piece
+                        
+                  
+                }
+            }
+            
+           
+            
+            
+            
+            // Handle other pieces if needed
+            default:
+                break
+        }
+        
+        print("KING AND PAWN TARGETS : \(targets)")
+        
+        return targets
+    }
+    
+    
+    
     
     
     func validMoves(for piece: chessPiece , CalledFromPlayer : Bool) -> [Int] {
@@ -460,6 +542,8 @@ struct ContentView: View {
                         newCol += colDelta
                     }
                 }
+
+            
         case .King:
             // Current position of the King
             let currentPosition = piece.position
@@ -479,52 +563,51 @@ struct ContentView: View {
                 (currentRow - 1, currentCol + 1), // Up-right
                 (currentRow - 1, currentCol - 1)  // Up-left
             ]
-            
+
+            // Collect all cells targeted by opponent pieces
+            var targetedCells = Set<Int>()
+            for opponentPiece in ChessBoard.pieces where opponentPiece.color != piece.color {
+                if opponentPiece.type == .King ||  opponentPiece.type == .Pawn{
+                    
+                    
+                    let opponentPawnAndKingMoves = pawnAndKingTargets(for: opponentPiece)
+                    targetedCells.formUnion(opponentPawnAndKingMoves)
+                    
+                    continue // Skip King's and Pawn's moves
+                }
+                let opponentMoves = validMoves(for: opponentPiece, CalledFromPlayer: false)
+                targetedCells.formUnion(opponentMoves)
+                
+                // Debug print for each opponent piece targeting specific cells
+                       for targetCell in opponentMoves {
+                           print("Opponent piece at position \(opponentPiece.position) targets position \(targetCell)")
+                       }
+            }
+           
+            print("\(targetedCells)")
             for (newRow, newCol) in kingMoves {
                 // Check if the move is within board bounds
                 if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
                     let newPosition = newRow * 8 + newCol
                     
                     // Check if the cell is occupied by a friendly piece
-                    if let friendlyPiece = ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) {
-                        continue  // Skip if there's a friendly piece
+                    if ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) != nil {
+                        continue // Skip if there's a friendly piece
                     }
                     
                     // Check if the cell is occupied by an opponent's piece (capture move)
                     let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
                     
-                    // Check if the cell is targeted by any opponent's piece (excluding the opponent's King)
-                    var isTargetedByOpponent = false
-                    for opponentPiece in ChessBoard.pieces where opponentPiece.color != piece.color {
-                        // Skip if the opponent's piece is a King to avoid recursion
-                        if opponentPiece.type == .King {
-                            continue
-                        }
-                        
-                        let opponentMoves = validMoves(for: opponentPiece, CalledFromPlayer: false)
-                        if opponentMoves.contains(newPosition) {
-                            isTargetedByOpponent = true
-                            break  // No need to check further if one piece is already targeting this position
-                        }
-                    }
-                    
                     // Only add the move if it's not targeted by any opponent
-                    if !isTargetedByOpponent {
+                    if !targetedCells.contains(newPosition) {
                         // Add regular or capture move
-                        if isCaptureMove {
+                       
                             moves.append(newPosition) // Capture the opponent's piece
-                        } else {
-                            moves.append(newPosition)  // Regular move
-                        }
+                        
                     }
                 }
             }
 
-
-
-            
-        
-            
             
         // Handle other pieces if needed
         default:
@@ -536,9 +619,16 @@ struct ContentView: View {
     }
     
     
+    
+    
+    
     func isValidPosition(_ position: Int) -> Bool {
         return position >= 0 && position < 64
     }
+    
+    
+    
+
     
     
 
