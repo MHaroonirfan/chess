@@ -19,6 +19,7 @@ extension pieceColor {
         return self == .white ? .black : .white
     }
 }
+
 struct chessPiece {
     var type : pieceType
     var color : pieceColor
@@ -63,6 +64,8 @@ struct chessBoard {
     }
     
 }
+var opponentTargets: Set<Int> = []
+
 
 
 
@@ -176,22 +179,12 @@ struct ContentView: View {
                 HStack{
                 }
                 .frame(maxWidth: .infinity, maxHeight: 80)
-                   
-                
-                
-                    
-            
             }
-            
-            
         }.ignoresSafeArea(.all)
-        
-        
-        
-        
     }
     
     func movePiece(to index: Int, piece: chessPiece) {
+        
         
         // Check if the piece belongs to the current player
             guard piece.color == currentPlayer else {
@@ -211,6 +204,7 @@ struct ContentView: View {
         
         // Switch turn to the other player
             currentPlayer = currentPlayer == .white ? .black : .white
+        calculateOpponentTargets(for: currentPlayer)
         
         
         // Clear selection and allowed moves after the move
@@ -222,7 +216,6 @@ struct ContentView: View {
         var targets: [Int] = []
         
         let direction = piece.color == .white ? -8 : 8  // White moves up, black moves down
-        let currentRow = piece.position / 8
         
         print("CALLED ON\(piece.type)")
         
@@ -266,29 +259,15 @@ struct ContentView: View {
                 (currentRow - 1, currentCol + 1), // Up-right
                 (currentRow - 1, currentCol - 1)  // Up-left
             ]
-            
-           
-            
-            
             for (newRow, newCol) in kingMoves {
                 // Check if the move is within board bounds
                 if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
                     let newPosition = newRow * 8 + newCol
-                    
-                   
-                    
-                  
-                       
                     targets.append(newPosition) // Capture the opponent's piece
                         
                   
                 }
             }
-            
-           
-            
-            
-            
             // Handle other pieces if needed
             default:
                 break
@@ -298,12 +277,11 @@ struct ContentView: View {
         
         return targets
     }
-    
-    
-    
-    
-    
     func validMoves(for piece: chessPiece , CalledFromPlayer : Bool) -> [Int] {
+        
+        
+        
+        
         var moves: [Int] = []
 
 //        If called from player dont allow the player to play with out his turn
@@ -349,13 +327,13 @@ struct ContentView: View {
             
             // Ensure capture doesn't wrap around the board
             if isValidPosition(diagonalLeft) && (piece.position % 8) > 0 {
-                if let leftCapture = ChessBoard.pieces.first(where: { $0.position == diagonalLeft && $0.color != piece.color }) {
+                if ChessBoard.pieces.first(where: { $0.position == diagonalLeft && $0.color != piece.color }) != nil {
                     moves.append(diagonalLeft)
                 }
             }
 
             if isValidPosition(diagonalRight) && (piece.position % 8) < 7 {
-                if let rightCapture = ChessBoard.pieces.first(where: { $0.position == diagonalRight && $0.color != piece.color }) {
+                if ChessBoard.pieces.first(where: { $0.position == diagonalRight && $0.color != piece.color }) != nil {
                     moves.append(diagonalRight)
                 }
             }
@@ -372,7 +350,7 @@ struct ContentView: View {
                     up -= 8
                 }
                 // If there's an enemy piece in the upward direction, capture it
-                if let enemyPiece = ChessBoard.pieces.first(where: { $0.position == up && $0.color != piece.color }) {
+            if ChessBoard.pieces.first(where: { $0.position == up && $0.color != piece.color }) != nil {
                     moves.append(up)
                 }
                 
@@ -383,7 +361,7 @@ struct ContentView: View {
                     down += 8
                 }
                 // Capture enemy piece downward
-                if let enemyPiece = ChessBoard.pieces.first(where: { $0.position == down && $0.color != piece.color }) {
+            if ChessBoard.pieces.first(where: { $0.position == down && $0.color != piece.color }) != nil {
                     moves.append(down)
                 }
                 
@@ -518,7 +496,6 @@ struct ContentView: View {
                         newCol += colDelta
                     }
                 }
-
                 // Handle bishop-like movements
                 for (rowDelta, colDelta) in bishopDirections {
                     var newRow = currentRow + rowDelta
@@ -542,8 +519,6 @@ struct ContentView: View {
                         newCol += colDelta
                     }
                 }
-
-            
         case .King:
             // Current position of the King
             let currentPosition = piece.position
@@ -562,29 +537,8 @@ struct ContentView: View {
                 (currentRow + 1, currentCol - 1), // Down-left
                 (currentRow - 1, currentCol + 1), // Up-right
                 (currentRow - 1, currentCol - 1)  // Up-left
-            ]
-
-            // Collect all cells targeted by opponent pieces
-            var targetedCells = Set<Int>()
-            for opponentPiece in ChessBoard.pieces where opponentPiece.color != piece.color {
-                if opponentPiece.type == .King ||  opponentPiece.type == .Pawn{
-                    
-                    
-                    let opponentPawnAndKingMoves = pawnAndKingTargets(for: opponentPiece)
-                    targetedCells.formUnion(opponentPawnAndKingMoves)
-                    
-                    continue // Skip King's and Pawn's moves
-                }
-                let opponentMoves = validMoves(for: opponentPiece, CalledFromPlayer: false)
-                targetedCells.formUnion(opponentMoves)
-                
-                // Debug print for each opponent piece targeting specific cells
-                       for targetCell in opponentMoves {
-                           print("Opponent piece at position \(opponentPiece.position) targets position \(targetCell)")
-                       }
-            }
-           
-            print("\(targetedCells)")
+            ]           
+            print("\(opponentTargets)")
             for (newRow, newCol) in kingMoves {
                 // Check if the move is within board bounds
                 if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
@@ -599,7 +553,7 @@ struct ContentView: View {
                     let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
                     
                     // Only add the move if it's not targeted by any opponent
-                    if !targetedCells.contains(newPosition) {
+                    if !opponentTargets.contains(newPosition) {
                         // Add regular or capture move
                        
                             moves.append(newPosition) // Capture the opponent's piece
@@ -607,33 +561,38 @@ struct ContentView: View {
                     }
                 }
             }
-
-            
-        // Handle other pieces if needed
-        default:
-            break
         }
         
         return moves
         
     }
-    
-    
-    
-    
-    
+
     func isValidPosition(_ position: Int) -> Bool {
         return position >= 0 && position < 64
     }
     
-    
-    
+    func calculateOpponentTargets(for currentPlayerColor: pieceColor) {
+        opponentTargets.removeAll()  // Clear the previous targets
 
-    
-    
+        for opponentPiece in ChessBoard.pieces where opponentPiece.color != currentPlayerColor {
+            let targets: Set<Int>
 
+            if opponentPiece.type == .King || opponentPiece.type == .Pawn {
+                // Convert the array result to a set before adding to opponentTargets
+                targets = Set(pawnAndKingTargets(for: opponentPiece))
+            } else {
+                targets = Set(validMoves(for: opponentPiece, CalledFromPlayer: false))
+            }
 
-
+            opponentTargets.formUnion(targets)
+            
+            // Debug print for each opponent piece targeting specific cells
+            for targetCell in targets {
+                print("Opponent piece at position \(opponentPiece.position) targets position \(targetCell)")
+            }
+        }
+    }
+ 
 
 
    
@@ -642,3 +601,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+
+
