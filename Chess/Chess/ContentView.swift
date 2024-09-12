@@ -156,7 +156,7 @@ struct ContentView: View {
                             
                             
 //                                Placing Pieces at board
-                                if let piece = ChessBoard.pieces.first(where: { $0.position == index }) {
+                            if let piece = ChessBoard.pieces.first(where: { $0.position == index }) {
                                 Image("\(piece.color == .white ? "White" : "Black")\(piece.type)")
                                     .resizable()
                                     .frame(width: 25, height: 40)
@@ -222,7 +222,7 @@ struct ContentView: View {
 //        calculateOpponentTargets for next turn
         calculateOpponentTargets(for: currentPlayer)
         print("\(currentPlayer)\(opponentTargets)")
-       // calculateFriendsTargets(for: currentPlayer)
+       //       		 calculateFriendsTargets(for: currentPlayer)
         
         for ChessPiece in ChessBoard.pieces where ChessPiece.color == currentPlayer {
             
@@ -559,6 +559,7 @@ struct ContentView: View {
                         newCol += colDelta
                     }
                 }
+            
         case .King:
             // Current position of the King
             let currentPosition = piece.position
@@ -578,33 +579,45 @@ struct ContentView: View {
                 (currentRow - 1, currentCol + 1), // Up-right
                 (currentRow - 1, currentCol - 1)  // Up-left
             ]
-            calculateOpponentTargets(for: currentPlayer)
-            for (newRow, newCol) in kingMoves {
-                // Check if the move is within board bounds
-                if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
-                    let newPosition = newRow * 8 + newCol
-                    
-                    // Check if the cell is occupied by a friendly piece
-                    if ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) != nil {
-                        continue // Skip if there's a friendly piece
-                    }
-                    
-                    // Check if the cell is occupied by an opponent's piece (capture move)
-                    let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
-                    
-                    // Only add the move if it's not targeted by any opponent
-                    print("Before\(opponentTargets)")
-                    if !opponentTargets.contains(newPosition) {
+
+            // Remove the king temporarily from the board
+            if let kingIndex = ChessBoard.pieces.firstIndex(where: { $0.position == currentPosition && $0.type == .King }) {
+                let king = ChessBoard.pieces.remove(at: kingIndex)
+
+                // Calculate opponent targets without the king on the board
+                calculateOpponentTargets(for: currentPlayer)
+
+                // Loop through all possible king moves
+                for (newRow, newCol) in kingMoves {
+                    // Check if the move is within board bounds
+                    if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
+                        let newPosition = newRow * 8 + newCol
                         
-                        print(opponentTargets)
-                        print("Allow")
-                        // Add regular or capture move
-                       
-                            moves.append(newPosition) // Capture the opponent's piece
+                        // Check if the cell is occupied by a friendly piece
+                        if ChessBoard.pieces.first(where: { $0.position == newPosition && $0.color == piece.color }) != nil {
+                            continue // Skip if there's a friendly piece
+                        }
                         
+                        // Check if the cell is occupied by an opponent's piece (capture move)
+                        let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
+
+                        // Only add the move if it's not targeted by any opponent
+                        if !opponentTargets.contains(newPosition) {
+                            moves.append(newPosition) // Add the valid move or capture
+                        }
                     }
                 }
+
+                // Restore the king back to the board
+                ChessBoard.pieces.insert(king, at: kingIndex)
             }
+
+            
+            
+            
+            
+            
+            
         }
         
         return moves
@@ -640,10 +653,7 @@ struct ContentView: View {
     
     func calculateFriendsTargets(for currentPlayerColor: pieceColor) {
         opponentTargets.removeAll()  // Clear the previous targets
-
         for friendPiece in ChessBoard.pieces where friendPiece.color == currentPlayerColor {
-            
-            
             let targets: Set <Int>
 
             if friendPiece.type == .King || friendPiece.type == .Pawn {
@@ -652,9 +662,7 @@ struct ContentView: View {
             } else {
                 targets = Set(validMoves(for: friendPiece, CalledFromPlayer: false))
             }
-
             friendsTargets.formUnion(targets)
-            
         }
     }
 
