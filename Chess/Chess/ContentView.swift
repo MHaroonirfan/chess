@@ -65,9 +65,10 @@ struct chessBoard {
     
 }
 var opponentTargets: Set<Int> = []
-
-
-
+//var friendsTargets: Set<Int> = []
+var kingPosition: Int = 0
+var KingIsInDanger: Bool = false
+var friendsTargets: Set<Int> = []
 
 
 struct ContentView: View {
@@ -127,21 +128,33 @@ struct ContentView: View {
                         ZStack {
                             
                                 if (index / 8 + index % 8) % 2 == 0 {
-                                Image("WhiteCell") // Background image
+                                    Image("WhiteCell") // Background image
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
                                         .shadow(color: .white.opacity(0.2), radius:15, x: 0, y: 0)
                                 } else {
-                                Image("BrownCell")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .shadow(color: .white.opacity(0.2), radius:15, x: 0, y: 0)
+                                    Image("BrownCell")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .shadow(color: .white.opacity(0.2), radius:15, x: 0, y: 0)
                                 }
+                            
+                            // Highlight King Danger
+                                            if KingIsInDanger && kingPosition == index {
+                                                Rectangle()
+                                                    .fill(Color.red.opacity(0.7)) // Use red to indicate danger
+                                                    .frame(width: (UIScreen.main.bounds.width - 5 ) / 8, height: (UIScreen.main.bounds.width - 20) / 8)
+                                            }
                             
                                 // Add index number for debugging purposes
                                     Text("\(index)")
                                         .font(.title)
                                         .foregroundColor(.red)
+                            
+                          
+                            
+                            
+                            
 //                                Placing Pieces at board
                                 if let piece = ChessBoard.pieces.first(where: { $0.position == index }) {
                                 Image("\(piece.color == .white ? "White" : "Black")\(piece.type)")
@@ -167,6 +180,8 @@ struct ContentView: View {
                                             }
                                         }
                                 }
+                            
+                           
                             
                             
                                         }
@@ -204,9 +219,34 @@ struct ContentView: View {
         
         // Switch turn to the other player
             currentPlayer = currentPlayer == .white ? .black : .white
+//        calculateOpponentTargets for next turn
         calculateOpponentTargets(for: currentPlayer)
+        print("\(currentPlayer)\(opponentTargets)")
+       // calculateFriendsTargets(for: currentPlayer)
+        
+        for ChessPiece in ChessBoard.pieces where ChessPiece.color == currentPlayer {
+            
+            if ChessPiece.type == .King {
+                
+                kingPosition = ChessPiece.position
+                print("King Position \(kingPosition)")
+            }
+            
+            
+        }
+        
+        print("Condition : \(opponentTargets.contains(kingPosition))")
+        
+        if opponentTargets.contains(kingPosition) {
+            KingIsInDanger = true
+            print("King is in danger ")
+            
+        }else{
+            KingIsInDanger = false
+        }
         
         
+
         // Clear selection and allowed moves after the move
         selectedPiece = nil
         allowedMoves = []
@@ -217,7 +257,7 @@ struct ContentView: View {
         
         let direction = piece.color == .white ? -8 : 8  // White moves up, black moves down
         
-        print("CALLED ON\(piece.type)")
+       
         
         switch piece.type {
             
@@ -273,7 +313,7 @@ struct ContentView: View {
                 break
         }
         
-        print("KING AND PAWN TARGETS : \(targets)")
+      
         
         return targets
     }
@@ -537,8 +577,8 @@ struct ContentView: View {
                 (currentRow + 1, currentCol - 1), // Down-left
                 (currentRow - 1, currentCol + 1), // Up-right
                 (currentRow - 1, currentCol - 1)  // Up-left
-            ]           
-            print("\(opponentTargets)")
+            ]
+            calculateOpponentTargets(for: currentPlayer)
             for (newRow, newCol) in kingMoves {
                 // Check if the move is within board bounds
                 if newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8 {
@@ -553,7 +593,11 @@ struct ContentView: View {
                     let isCaptureMove = ChessBoard.pieces.contains { $0.position == newPosition && $0.color != piece.color }
                     
                     // Only add the move if it's not targeted by any opponent
+                    print("Before\(opponentTargets)")
                     if !opponentTargets.contains(newPosition) {
+                        
+                        print(opponentTargets)
+                        print("Allow")
                         // Add regular or capture move
                        
                             moves.append(newPosition) // Capture the opponent's piece
@@ -575,6 +619,8 @@ struct ContentView: View {
         opponentTargets.removeAll()  // Clear the previous targets
 
         for opponentPiece in ChessBoard.pieces where opponentPiece.color != currentPlayerColor {
+            
+            
             let targets: Set<Int>
 
             if opponentPiece.type == .King || opponentPiece.type == .Pawn {
@@ -586,13 +632,32 @@ struct ContentView: View {
 
             opponentTargets.formUnion(targets)
             
-            // Debug print for each opponent piece targeting specific cells
-            for targetCell in targets {
-                print("Opponent piece at position \(opponentPiece.position) targets position \(targetCell)")
-            }
         }
     }
- 
+    
+    
+    
+    
+    func calculateFriendsTargets(for currentPlayerColor: pieceColor) {
+        opponentTargets.removeAll()  // Clear the previous targets
+
+        for friendPiece in ChessBoard.pieces where friendPiece.color == currentPlayerColor {
+            
+            
+            let targets: Set <Int>
+
+            if friendPiece.type == .King || friendPiece.type == .Pawn {
+//                 Convert the array result to a set before adding to opponentTargets
+                targets = Set(pawnAndKingTargets(for: friendPiece))
+            } else {
+                targets = Set(validMoves(for: friendPiece, CalledFromPlayer: false))
+            }
+
+            friendsTargets.formUnion(targets)
+            
+        }
+    }
+
 
 
    
